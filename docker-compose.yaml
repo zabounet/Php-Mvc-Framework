@@ -1,0 +1,52 @@
+#docker-compose build --no-cache
+version: "3"
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    #restart: always
+    volumes:
+      - ./source/:/var/www/html/:ro
+      - ./nginx/:/etc/nginx/conf.d/
+    ports:
+      - 8000:80
+    links:
+      - php
+    depends_on:
+      - php
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: php
+    volumes:
+      - ./source:/var/www/html/
+    tmpfs: /tmp
+    # command: sh -c "composer install --ignore-platform-reqs"
+    depends_on:
+      - mariadbService
+    links:
+      - mariadbService
+
+  mariadbService:
+    image: mariadb:latest
+    container_name: mariadb
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIA_DB_ROOT_PWD}
+      - MARIADB_USER=""
+      - MARIADB_PASSWORD=""
+      - UPLOAD_LIMIT=4800000000000
+    volumes:
+      - ./dump/:/docker-entrypoint-initdb.d
+      #- ./db/:/var/lib/mysql/
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - 9000:80
+    links:
+      - mariadbService:db
+    environment:
+      - UPLOAD_LIMIT=4800000000000
